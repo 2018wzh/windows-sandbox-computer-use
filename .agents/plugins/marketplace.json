@@ -1,0 +1,20 @@
+{
+  "name": "windows-sandbox-tools",
+  "interface": {
+    "displayName": "Windows Sandbox Tools"
+  },
+  "plugins": [
+    {
+      "name": "windows-sandbox-computer-use",
+      "source": {
+        "source": "local",
+        "path": "./plugins/windows-sandbox-computer-use"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

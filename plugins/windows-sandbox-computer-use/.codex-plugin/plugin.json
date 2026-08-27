@@ -1,0 +1,38 @@
+{
+  "name": "windows-sandbox-computer-use",
+  "version": "1.0.0",
+  "description": "Control and debug Windows Sandbox through wsb and IronRDP without automating local windows.",
+  "author": {
+    "name": "2018wzh",
+    "url": "https://github.com/2018wzh"
+  },
+  "homepage": "https://github.com/2018wzh/windows-sandbox-computer-use",
+  "repository": "https://github.com/2018wzh/windows-sandbox-computer-use",
+  "license": "MIT",
+  "keywords": [
+    "windows-sandbox",
+    "computer-use",
+    "ironrdp",
+    "codex",
+    "agent-skill"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Windows Sandbox Computer Use",
+    "shortDescription": "Visually control and share files with Windows Sandbox",
+    "longDescription": "Create, inspect, share scoped directories with, and visually control an authorized Windows Sandbox using the current wsb CLI and IronRDP Agent.",
+    "developerName": "2018wzh",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/2018wzh/windows-sandbox-computer-use",
+    "defaultPrompt": [
+      "Check whether this Windows Sandbox is ready for visual control.",
+      "Share a debug directory read-only with this Windows Sandbox.",
+      "Control this Windows Sandbox and verify each action visually."
+    ]
+  }
+}

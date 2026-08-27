@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+work/
+screenshots/
+*.log
+.DS_Store
