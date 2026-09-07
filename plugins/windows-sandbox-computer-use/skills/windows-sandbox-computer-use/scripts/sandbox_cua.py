@@ -158,7 +158,14 @@ def _state_dir() -> Path:
     if os.name == "nt":
         root = os.environ.get("LOCALAPPDATA")
         if not root:
-            raise AdapterError("state_unavailable", "LOCALAPPDATA is unavailable; set IRONRDP_CUA_STATE_DIR")
+            # Embedded runtimes may omit environment variables. Ask Windows for
+            # the user's actual directory (including redirected profiles).
+            import ctypes
+            buffer = ctypes.create_unicode_buffer(32768)
+            result = ctypes.windll.shell32.SHGetFolderPathW(None, 0x001C, None, 0, buffer)
+            if result != 0 or not buffer.value:
+                raise AdapterError("state_unavailable", "Windows LocalAppData lookup failed; set IRONRDP_CUA_STATE_DIR")
+            root = buffer.value
         return Path(root) / "Codex" / "windows-sandbox-computer-use"
     root = os.environ.get("XDG_STATE_HOME")
     return (Path(root).expanduser() if root else Path.home() / ".local" / "state") / "codex" / "windows-sandbox-computer-use"
@@ -496,7 +503,7 @@ def _key_event(args: argparse.Namespace, scancode: int, pressed: bool) -> None:
 
 def _key_code(name: str) -> int:
     normalized = name.strip().upper()
-    aliases = {"RETURN": "ENTER", "CONTROL": "CTRL", "ESCAPE": "ESC", "DEL": "DELETE", "PGUP": "PAGEUP", "PGDN": "PAGEDOWN"}
+    aliases = {"RETURN": "ENTER", "CONTROL": "CTRL", "CONTROL_L": "CTRL", "CONTROL_R": "RCTRL", "CTRL_L": "CTRL", "ALT_L": "ALT", "ALT_R": "RALT", "SHIFT_L": "SHIFT", "ESCAPE": "ESC", "DEL": "DELETE", "PGUP": "PAGEUP", "PGDN": "PAGEDOWN"}
     normalized = aliases.get(normalized, normalized)
     try:
         return SCANCODES[normalized]
@@ -521,6 +528,8 @@ def cmd_hotkey(args: argparse.Namespace) -> None:
     if len({name.upper() for name in names}) != len(names):
         raise AdapterError("invalid_input", "hotkey must not contain duplicate keys")
     codes = [_key_code(name) for name in names]
+    if len(set(codes)) != len(codes):
+        raise AdapterError("invalid_input", "hotkey aliases must not refer to the same key")
     pressed: list[int] = []
     try:
         for code in codes:
@@ -544,6 +553,8 @@ def cmd_hotkey(args: argparse.Namespace) -> None:
 def cmd_type(args: argparse.Namespace) -> None:
     if not args.text:
         raise AdapterError("invalid_input", "text must not be empty")
+    if any(ord(character) < 32 or ord(character) == 127 for character in args.text):
+        raise AdapterError("invalid_input", "use key or hotkey for control characters")
     chunks = [args.text[index:index + MAX_TEXT_CHARS] for index in range(0, len(args.text), MAX_TEXT_CHARS)]
     completed = 0
     try:

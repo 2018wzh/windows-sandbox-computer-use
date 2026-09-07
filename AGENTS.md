@@ -18,12 +18,15 @@ Do not create a second skill copy, generic RDP backend, legacy Sandbox window ba
 ## Runtime architecture
 
 ```text
-wsb / SandboxCore -> IronRDP NamedPipe -> screenshots and remote input
+Node session -> Python adapter -> wsb / SandboxCore -> IronRDP NamedPipe
 ```
 
 Use `wsb share` for scoped directory sharing. Keep read-only as the default. Writable sharing requires explicit authorization for the exact source and destination.
 
 ## Change requirements
+
+- Use the persistent Node session for guest input, with one inspected observation per action and automatic screenshot refresh. Keep guidance, API, safety and confirmations self-contained.
+- No guest UIA or window enumeration is available; do not advertise those capabilities. Lifecycle and sharing remain owned by the Python adapter. Node built-ins are the only JavaScript dependencies.
 
 - Fail closed on missing or incompatible dependencies.
 - Preserve structured, bounded error output and observable lifecycle state.
@@ -42,4 +45,5 @@ python -m unittest discover \
   -p 'test_*.py' \
   -v
 npx skills add . --list
+node --test plugins/windows-sandbox-computer-use/skills/windows-sandbox-computer-use/tests/test_session.mjs
 ```

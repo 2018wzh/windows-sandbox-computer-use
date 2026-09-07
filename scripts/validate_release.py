@@ -91,6 +91,12 @@ def validate_skill() -> None:
     for relative in (
         Path("scripts/sandbox_cua.py"),
         Path("references/workflow.md"),
+        Path("scripts/sandbox_session.mjs"),
+        Path("references/guidance.md"),
+        Path("references/api.md"),
+        Path("references/safety.md"),
+        Path("references/confirmations.md"),
+        Path("tests/test_session.mjs"),
         Path("tests/test_sandbox_cua.py"),
     ):
         if not (SKILL / relative).is_file():

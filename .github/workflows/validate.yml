@@ -37,3 +37,6 @@ jobs:
 
       - name: Verify npx skills discovery
         run: npx --yes skills@latest add . --list
+
+      - name: Test persistent Sandbox session
+        run: node --test plugins/windows-sandbox-computer-use/skills/windows-sandbox-computer-use/tests/test_session.mjs

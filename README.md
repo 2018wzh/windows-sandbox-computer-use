@@ -15,6 +15,7 @@ It does not connect to ordinary RDP hosts, automate the local Sandbox window, or
 - Windows 11 with the Store-delivered Windows Sandbox runtime and a working `wsb` CLI
 - Windows Sandbox enabled by the operator
 - Python 3.10 or newer
+- Node.js 22 or newer and a persistent Node REPL with image display
 - `ironrdp-agent` 0.1.0 or newer on `PATH`, in Cargo's user bin directory, or selected through `IRONRDP_AGENT_BIN`
 
 Install IronRDP Agent from its official release, or with:
@@ -68,6 +69,17 @@ python scripts/sandbox_cua.py status
 
 `doctor` fails closed when the installed Windows Sandbox or IronRDP Agent lacks a required capability.
 
+## Persistent visual control
+
+The skill uses a persistent JavaScript session with automatic screenshot display,
+single-use observations, coordinate bounds, one input followed by refresh, and
+explicit recovery after unknown outcomes. Safety and confirmation references are
+bundled. The session uses the existing Python adapter and Node built-ins.
+
+This aligns the visual workflow with Computer Use. IronRDP does not expose guest
+accessibility trees, app/window enumeration or per-window capture. See the skill
+references for initialization and API examples.
+
 ## Scoped directory sharing
 
 Directory sharing is read-only by default:
@@ -102,6 +114,7 @@ python -m unittest discover \
   -p 'test_*.py' \
   -v
 npx skills add . --list
+node --test plugins/windows-sandbox-computer-use/skills/windows-sandbox-computer-use/tests/test_session.mjs
 ```
 
 The repository contains one canonical skill tree under the plugin. Both the Codex Marketplace and `npx skills` consume that same tree.

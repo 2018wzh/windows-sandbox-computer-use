@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -28,6 +29,28 @@ def completed(stdout: str = "ok\n") -> subprocess.CompletedProcess[str]:
 
 
 class AdapterTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == "nt", "Windows known-folder API")
+    def test_state_directory_without_localappdata(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            directory = MODULE._state_dir()
+        self.assertTrue(directory.is_absolute())
+        self.assertEqual(directory.name, "windows-sandbox-computer-use")
+        self.assertTrue(directory.parent.parent.is_dir())
+
+    def test_keysym_aliases_and_duplicate_alias_rejection(self) -> None:
+        self.assertEqual(MODULE._key_code("Control_L"), 0x1D)
+        self.assertEqual(MODULE._key_code("Alt_R"), 0xE038)
+        with patch.object(MODULE, "_run") as run, redirect_stderr(StringIO()):
+            with self.assertRaises(SystemExit):
+                MODULE.main(["hotkey", "--keys", "CTRL,Control_L"])
+            run.assert_not_called()
+
+    def test_control_text_rejected_before_input(self) -> None:
+        with patch.object(MODULE, "_run") as run, redirect_stderr(StringIO()):
+            with self.assertRaises(SystemExit):
+                MODULE.main(["type", "--text", "hello\n"])
+            run.assert_not_called()
+
     def test_key_aliases_and_extended_scancodes(self) -> None:
         self.assertEqual(MODULE._key_code("return"), 0x1C)
         self.assertEqual(MODULE._key_code("delete"), 0xE053)

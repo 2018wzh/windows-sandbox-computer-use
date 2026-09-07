@@ -13,7 +13,7 @@ One IronRDP daemon owns one Sandbox RDP session. A managed daemon is recorded un
 3. Run `status`. Reuse a compatible daemon, or run `daemon-start` if none exists.
 4. Run `sandbox-start` only when a new Sandbox is requested, then run `sandbox-list` again to obtain its ID.
 5. Run `sandbox-connect --id SANDBOX_ID`, then `wait-connected --stable-seconds 8`.
-6. Capture and inspect a screenshot before every coordinate-derived action.
+6. Initialize the Node session and follow guidance.md for visual control. Its `connect(id)` includes the stable wait from step 5.
 7. Perform one action, then capture a fresh screenshot and verify the result.
 8. Run `disconnect` when visual control is complete. Run `sandbox-stop` only when the user requested destruction and the confirmation policy permits it.
 
@@ -23,8 +23,6 @@ python scripts/sandbox_cua.py sandbox-start
 python scripts/sandbox_cua.py sandbox-connect --id SANDBOX_ID
 python scripts/sandbox_cua.py wait-connected --stable-seconds 8
 python scripts/sandbox_cua.py screenshot work/sandbox-001.png
-python scripts/sandbox_cua.py click --x 420 --y 260
-python scripts/sandbox_cua.py type --text "hello"
 python scripts/sandbox_cua.py disconnect
 ```
 
@@ -55,7 +53,7 @@ The adapter resolves the host path, requires a directory, rejects filesystem roo
 
 ## Observe, act, verify
 
-Screenshots are full-frame observations without a remote UI Automation tree. Use a new sequential filename for every observation; the adapter refuses overwrite unless `--overwrite` is explicit.
+Screenshots are full-frame observations without a remote UI Automation tree. The Node session displays and cleans temporary screenshots automatically. For retained diagnostic captures use a new filename; the adapter refuses overwrite unless `--overwrite` is explicit.
 
 For every input action:
 

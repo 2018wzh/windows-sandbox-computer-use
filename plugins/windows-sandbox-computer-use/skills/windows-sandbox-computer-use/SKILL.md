@@ -7,12 +7,14 @@ description: Create, inspect, share folders with, and visually control an author
 
 Use the current Store-delivered Windows Sandbox runtime as the lifecycle and file-sharing control plane. Use `ironrdp-agent` only for the SandboxCore RDP session, screenshots, and remote input. Never attach to or manipulate the local Sandbox window.
 
-Before the first operation in a turn, read:
+Read this entire entrypoint once before Sandbox automation. Read these resources as indicated:
 
-- [references/workflow.md](references/workflow.md) for lifecycle, directory sharing, visual observation, recovery, and cleanup.
-- The bundled Computer Use `confirmations.md` before deciding whether a remote UI action needs confirmation. Apply the same policy because RDP input changes a Windows UI.
+- [references/workflow.md](references/workflow.md) before lifecycle or sharing operations.
+- [references/guidance.md](references/guidance.md) and [references/safety.md](references/safety.md) before guest UI control.
+- [references/confirmations.md](references/confirmations.md) before deciding whether an action needs confirmation. Higher-priority instructions and existing user authorization take precedence; do not invent additional approval gates.
+- [references/api.md](references/api.md) for session methods and observation shapes.
 
-Use [scripts/sandbox_cua.py](scripts/sandbox_cua.py) for every operation. It invokes `wsb` and `ironrdp-agent` with argument arrays, validates target paths, bounds input, and emits structured JSON. Do not assemble raw commands when the adapter supports the operation.
+Use the persistent Node REPL and [scripts/sandbox_session.mjs](scripts/sandbox_session.mjs) for guest UI control. It uses [scripts/sandbox_cua.py](scripts/sandbox_cua.py) as its sole transport. Use that adapter for lifecycle and scoped sharing; do not build another protocol client. Require Node 22+ and Python 3.10+.
 
 ## Non-negotiable boundaries
 
@@ -28,12 +30,21 @@ Use [scripts/sandbox_cua.py](scripts/sandbox_cua.py) for every operation. It inv
 
 ## Initialize
 
-Run `doctor`, inspect the Sandbox list and daemon status, start the daemon if absent, then start or connect only to the selected Sandbox.
+Resolve `skillDirectory` to the directory of this loaded skill, then run once per fresh `node_repl` session:
 
-```sh
-python scripts/sandbox_cua.py doctor
-python scripts/sandbox_cua.py sandbox-list
-python scripts/sandbox_cua.py status
+```js
+if (!globalThis.sandbox) {
+  const { pathToFileURL } = await import('node:url');
+  const { join } = await import('node:path');
+  const { createSandbox } = await import(pathToFileURL(join(skillDirectory, 'scripts/sandbox_session.mjs')).href);
+  globalThis.sandbox = createSandbox({ emitImage: image => nodeRepl.emitImage(image) });
+}
+nodeRepl.write(JSON.stringify(await sandbox.doctor()));
+nodeRepl.write(JSON.stringify(await sandbox.list_sandboxes()));
 ```
 
-Paths in examples are relative to this skill directory. Resolve the adapter path from the loaded skill when invoking it; do not embed machine-specific paths in repositories or generated documentation.
+Inspect daemon status, start it only if absent, and connect to exactly one authorized returned Sandbox ID. Read guidance for the observe–act–refresh loop. A missing Node REPL or incompatible runtime is a blocker for this interface; report it rather than claiming equivalent support through another backend.
+
+This aligns the visual interaction workflow with Computer Use. It does not provide guest app/window enumeration, UI Automation element indexes, or per-window screenshots. Observations cover the full guest framebuffer. Never import host `@oai/sky` to control guest apps or fabricate remote window objects.
+
+Paths in examples are relative to the loaded skill directory; do not embed machine-specific paths in repositories or generated documentation.
