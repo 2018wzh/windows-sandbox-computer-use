@@ -29,6 +29,44 @@ def completed(stdout: str = "ok\n") -> subprocess.CompletedProcess[str]:
 
 
 class AdapterTests(unittest.TestCase):
+    def run_exec(self, response, *options):
+        output = StringIO()
+        with (
+            patch.object(MODULE, "_sandbox_bootstrap", return_value=("wsb", "0.8", [{"Id": SANDBOX_ID}])),
+            patch.object(MODULE, "_host_run", return_value=completed(response)) as run,
+            redirect_stdout(output), redirect_stderr(output),
+        ):
+            try:
+                MODULE.main(["sandbox-exec", "--id", SANDBOX_ID, "--command", 'tool.exe "hello world"', *options])
+            except SystemExit as error:
+                self.assertEqual(error.code, 1)
+        return json.loads(output.getvalue()), run
+
+    def test_exec_uses_native_wsb_and_preserves_command(self):
+        result, run = self.run_exec('{"ExitCode":0}', "--cwd", "C:\\Work Space")
+        self.assertTrue(result["ok"])
+        self.assertIsNone(result["stdout"])
+        argv = run.call_args.args[0]
+        self.assertEqual(argv[argv.index("--command") + 1], 'tool.exe "hello world"')
+        self.assertEqual(argv[argv.index("--run-as") + 1], "ExistingLogin")
+
+    def test_exec_nonzero_is_structured_failure(self):
+        result, _ = self.run_exec('{"ExitCode":7}')
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["exit_code"], 7)
+        self.assertEqual(result["category"], "guest_command_failed")
+
+    def test_exec_rejects_incompatible_results(self):
+        for value in ('{}', 'garbage', '{"ExitCode":true}', '{"ExitCode":"0"}'):
+            with self.subTest(value=value):
+                result, _ = self.run_exec(value)
+                self.assertEqual(result["category"], "invalid_exec_result")
+
+    def test_exec_invalid_timeout_does_not_launch(self):
+        result, run = self.run_exec('{"ExitCode":0}', "--timeout", "nan")
+        self.assertEqual(result["category"], "invalid_input")
+        run.assert_not_called()
+
     @unittest.skipUnless(os.name == "nt", "Windows known-folder API")
     def test_state_directory_without_localappdata(self) -> None:
         with patch.dict(os.environ, {}, clear=True):

@@ -1,7 +1,7 @@
 {
   "name": "windows-sandbox-tools",
   "interface": {
-    "displayName": "Windows Sandbox Tools"
+    "displayName": "Windows Sandbox Command and Visual Tools"
   },
   "plugins": [
     {

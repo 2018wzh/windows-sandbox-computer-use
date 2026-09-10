@@ -1,7 +1,7 @@
 {
   "name": "windows-sandbox-computer-use",
-  "version": "1.0.0",
-  "description": "Control and debug Windows Sandbox through wsb and IronRDP without automating local windows.",
+  "version": "1.1.0",
+  "description": "Execute guest commands, batch tasks, share scoped directories and visually control Windows Sandbox.",
   "author": {
     "name": "2018wzh",
     "url": "https://github.com/2018wzh"
@@ -19,8 +19,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Windows Sandbox Computer Use",
-    "shortDescription": "Visually control and share files with Windows Sandbox",
-    "longDescription": "Create, inspect, share scoped directories with, and visually control an authorized Windows Sandbox using the current wsb CLI and IronRDP Agent. Persistent JavaScript sessions display screenshots automatically and require fresh observations for input. Guest accessibility trees and window enumeration are not available.",
+    "shortDescription": "Guest commands and visual Sandbox control",
+    "longDescription": "Native wsb command execution, fail-fast batches, scoped directory sharing and IP queries, plus persistent IronRDP visual sessions with automatic screenshots. Command-only workflows need no RDP. Native exec returns exit codes, not stdout/stderr; guest accessibility trees and window enumeration are unavailable.",
     "developerName": "2018wzh",
     "category": "Developer Tools",
     "capabilities": [

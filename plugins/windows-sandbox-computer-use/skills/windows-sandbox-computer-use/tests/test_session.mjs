@@ -98,3 +98,49 @@ test('selection requires a returned ID and forbids implicit replacement', async 
   await f.session.disconnect();
   await assert.rejects(f.session.connect('made-up'), /exactly one/);
 });
+
+test('command-only selection needs neither image callback nor RDP', async () => {
+  const calls = [];
+  const session = createSandbox({ run: async argv => {
+    calls.push(argv);
+    if (argv[0] === 'sandbox-list') return { environments: [{ Id: id }] };
+    return { ok: true, exit_code: 0, stdout: null, stderr: null };
+  } });
+  await session.select();
+  assert.equal((await session.exec('cmd.exe /c exit 0')).exit_code, 0);
+  assert.deepEqual(calls.map(c => c[0]), ['sandbox-list', 'sandbox-exec']);
+  await assert.rejects(session.get_state(), /emitImage/);
+});
+
+test('commands invalidate visual observations and preserve argument boundaries', async () => {
+  const f = await fixture();
+  const state = await f.session.get_state();
+  const command = 'tool.exe "space and 中文" & literal';
+  await f.session.exec({ command, cwd: 'C:\\Work Space' });
+  const call = f.calls.find(c => c[0] === 'sandbox-exec');
+  assert.equal(call[call.indexOf('--command') + 1], command);
+  assert.equal(call[call.indexOf('--cwd') + 1], 'C:\\Work Space');
+  await assert.rejects(f.session.click({state, x:1, y:1}), /Reobserve/);
+});
+
+test('batch validates all requests before running and stops at first failure', async () => {
+  const f = await fixture();
+  await assert.rejects(f.session.exec_many(['cmd.exe /c exit 0', {command:'x', timeout:Infinity}]), /timeout/);
+  assert.equal(f.calls.filter(c => c[0] === 'sandbox-exec').length, 0);
+  f.fail('sandbox-exec');
+  await assert.rejects(f.session.exec_many(['first.exe', 'second.exe']), error => {
+    assert.equal(error.failed_index, 0);
+    assert.deepEqual(error.completed, []);
+    return true;
+  });
+  assert.equal(f.calls.filter(c => c[0] === 'sandbox-exec').length, 1);
+});
+
+test('ambiguous selection never executes and shared directories stay read-only by default', async () => {
+  const session = createSandbox({run: async () => ({ environments:[{Id:id},{Id:'other'}] })});
+  await assert.rejects(session.select(), /exactly one/);
+  await assert.rejects(session.exec('tool.exe'), /Select/);
+  const f = await fixture();
+  await f.session.share({host_path:'work/input', sandbox_path:'C:\\Input'});
+  assert.equal(f.calls.find(c => c[0] === 'sandbox-share').includes('--allow-write'), false);
+});

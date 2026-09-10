@@ -1,16 +1,21 @@
 # Sandbox session API
 
 Import `createSandbox` from `scripts/sandbox_session.mjs` in the persistent Node REPL.
-Pass `emitImage: image => nodeRepl.emitImage(image)`. Optional `python` selects a Python
+For visual work pass `emitImage: image => nodeRepl.emitImage(image)`; omit it for command-only work. Optional `python` selects a Python
 executable; `endpoint` selects the existing IronRDP IPC endpoint. No shell is used.
 
 | Method | Arguments / result |
 | --- | --- |
+| `select(id?)` | Select a returned Sandbox without RDP; omission requires exactly one running instance |
+| `exec(commandOrRequest)` | Native guest execution; request has `command`, optional `cwd`, `run_as`, `timeout` |
+| `exec_many(requests)` | 1–32 sequential commands; validate requests up front, stop on first failure |
+| `share({host_path,sandbox_path,allow_write?})` | Share an explicit directory; read-only by default |
+| `ip()` | Native guest IP query for the selected instance |
 | `doctor()` | Dependency report; does not install or enable anything |
 | `list_sandboxes()` | Returns `environments`; select exactly one returned `Id` |
 | `status()` | Current daemon status; failure is not proof the daemon is absent |
 | `start_daemon()` | Start only after establishing no daemon is available |
-| `connect(id)` | Validate a returned ID, connect, wait for eight seconds of Connected state |
+| `connect(id?)` | Connect the selected/explicit returned ID; wait for eight seconds of Connected state |
 | `get_state()` | Display screenshot once and return an observation |
 | `click({state,x,y,mouse_button?,click_count?})` | Full-frame pixel coordinates; defaults left, one click |
 | `drag({state,from_x,from_y,to_x,to_y})` | Drag within the screenshot |
@@ -34,6 +39,8 @@ It does not save a screenshot history. Use the adapter's `screenshot` command wh
 the user needs a retained artifact. The exported `runAdapter(argv, options)` supports
 lifecycle and scoped sharing; consult `sandbox_cua.py --help` for those commands.
 Do not mix direct adapter input or another daemon client with a connected session.
+Commands and sharing invalidate visual observations. See commands.md for execution
+results, failure handling and native stdout limitations.
 
 Supported keys are the adapter's `SCANCODES` and aliases: letters, number row,
 F1–F12, navigation, Enter, Tab, Escape, Space, Backspace, Delete, Insert, Ctrl,

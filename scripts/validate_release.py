@@ -94,6 +94,7 @@ def validate_skill() -> None:
         Path("scripts/sandbox_session.mjs"),
         Path("references/guidance.md"),
         Path("references/api.md"),
+        Path("references/commands.md"),
         Path("references/safety.md"),
         Path("references/confirmations.md"),
         Path("tests/test_session.mjs"),

@@ -73,9 +73,10 @@ SCANCODES.update(
 
 
 class AdapterError(RuntimeError):
-    def __init__(self, category: str, message: str):
+    def __init__(self, category: str, message: str, **details: object):
         super().__init__(message)
         self.category = category
+        self.details = details
 
 
 def _bounded(value: str) -> str:
@@ -97,6 +98,7 @@ def _fail(operation: str, error: Exception) -> NoReturn:
         "operation": operation,
         "category": category,
         "message": _bounded(str(error)),
+        **(error.details if isinstance(error, AdapterError) else {}),
     }
     print(json.dumps(payload, ensure_ascii=True), file=sys.stderr)
     raise SystemExit(1)
@@ -645,6 +647,51 @@ def cmd_sandbox_stop(args: argparse.Namespace) -> None:
     cmd_simple(args, "sandbox-stop", ["sandbox", "stop", sandbox_id], timeout=30)
 
 
+def cmd_sandbox_exec(args: argparse.Namespace) -> None:
+    if not args.command.strip() or "\x00" in args.command:
+        raise AdapterError("invalid_input", "command must be non-empty and NUL-free")
+    if not 0 < args.timeout <= 300:
+        raise AdapterError("invalid_input", "timeout must be between 0 and 300 seconds")
+    if args.cwd:
+        path = PureWindowsPath(args.cwd)
+        if not path.is_absolute() or not re.fullmatch(r"[A-Za-z]:\\.*", args.cwd) or ".." in path.parts:
+            raise AdapterError("invalid_input", "cwd must be an absolute guest drive path without parent traversal")
+    wsb, _version, environments = _sandbox_bootstrap()
+    sandbox_id = _sandbox_id(args.id)
+    _require_running_sandbox(environments, sandbox_id)
+    command = [wsb, "exec", "--id", sandbox_id, "--command", args.command, "--run-as", args.run_as, "--raw"]
+    if args.cwd:
+        command.extend(["--working-directory", args.cwd])
+    started = time.monotonic()
+    try:
+        result = _host_run(command, timeout=args.timeout)
+    except AdapterError as error:
+        raise AdapterError("execution_outcome_unknown", "wsb execution did not return a result; the guest process may still be running. Do not retry blindly: " + str(error)) from error
+    try:
+        payload = json.loads(result.stdout)
+        exit_code = payload["ExitCode"]
+        if type(exit_code) is not int:
+            raise TypeError("ExitCode must be an integer")
+    except (json.JSONDecodeError, KeyError, TypeError) as error:
+        raise AdapterError("invalid_exec_result", "wsb exec did not return an integer ExitCode; execution outcome is unknown") from error
+    details = dict(exit_code=exit_code, elapsed_ms=round((time.monotonic() - started) * 1000), stdout=None, stderr=None)
+    if exit_code != 0:
+        raise AdapterError("guest_command_failed", f"guest command exited with code {exit_code}", **details)
+    _emit("sandbox-exec", **details)
+
+
+def cmd_sandbox_ip(args: argparse.Namespace) -> None:
+    wsb, _version, environments = _sandbox_bootstrap()
+    sandbox_id = _sandbox_id(args.id)
+    _require_running_sandbox(environments, sandbox_id)
+    result = _host_run([wsb, "ip", "--id", sandbox_id, "--raw"], timeout=15)
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise AdapterError("invalid_ip_result", "wsb ip returned invalid JSON") from error
+    _emit("sandbox-ip", result=payload)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--endpoint", help="explicit ironrdp-agent IPC endpoint")
@@ -727,6 +774,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     subparsers.add_parser("sandbox-list").set_defaults(handler=cmd_sandbox_list)
+    execute = subparsers.add_parser("sandbox-exec", help="execute a guest command through wsb; returns exit code, not stdout")
+    execute.add_argument("--id", required=True)
+    execute.add_argument("--command", required=True)
+    execute.add_argument("--cwd")
+    execute.add_argument("--run-as", choices=("ExistingLogin", "System"), default="ExistingLogin")
+    execute.add_argument("--timeout", type=float, default=30)
+    execute.set_defaults(handler=cmd_sandbox_exec)
+    ip = subparsers.add_parser("sandbox-ip")
+    ip.add_argument("--id", required=True)
+    ip.set_defaults(handler=cmd_sandbox_ip)
     sandbox_start = subparsers.add_parser("sandbox-start")
     sandbox_start.add_argument("--id")
     sandbox_start.add_argument("--config")

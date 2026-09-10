@@ -21,6 +21,11 @@ Do not create a second skill copy, generic RDP backend, legacy Sandbox window ba
 Node session -> Python adapter -> wsb / SandboxCore -> IronRDP NamedPipe
 ```
 
+Native guest commands, IP queries and scoped sharing use wsb directly and need no
+RDP session. Use command batches for deterministic work and screenshots for visual
+decisions. Native exec returns exit codes only; never fabricate stdout or retry
+unknown execution outcomes. Keep commands on the guest and mounted host writes scoped.
+
 Use `wsb share` for scoped directory sharing. Keep read-only as the default. Writable sharing requires explicit authorization for the exact source and destination.
 
 ## Change requirements

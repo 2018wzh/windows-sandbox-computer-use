@@ -12,6 +12,12 @@ It does not connect to ordinary RDP hosts, automate the local Sandbox window, or
 
 ## Requirements
 
+Command execution, batching, sharing and IP queries need only Python and the current
+Store wsb CLI. Node sessions reduce repeated tool calls. IronRDP and an image callback
+are required only for visual control. Commands execute in the selected Sandbox with
+explicit working directory/context and bounded wait time; batches stop on failure.
+The native CLI returns exit codes but does not capture stdout/stderr.
+
 - Windows 11 with the Store-delivered Windows Sandbox runtime and a working `wsb` CLI
 - Windows Sandbox enabled by the operator
 - Python 3.10 or newer
@@ -29,7 +35,7 @@ cargo install ironrdp-agent
 Register the repository Marketplace and install the plugin:
 
 ```sh
-codex plugin marketplace add 2018wzh/windows-sandbox-computer-use --ref v1.0.0
+codex plugin marketplace add 2018wzh/windows-sandbox-computer-use --ref v1.1.0
 codex plugin add windows-sandbox-computer-use@windows-sandbox-tools
 ```
 
